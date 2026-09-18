@@ -156,6 +156,88 @@ describe('allowedIcons', () => {
   })
 })
 
+describe('keyboard navigation', () => {
+  // The grid is never focused: this is the ARIA 1.2 combobox pattern, so focus
+  // stays on the search input and aria-activedescendant tracks the highlight.
+  const activeName = () =>
+    screen.getByRole('combobox', inPopover).getAttribute('aria-activedescendant')
+
+  it('moves the highlight along a row with Left/Right', async () => {
+    const user = userEvent.setup()
+    render(<LucideIconPicker {...inputProps()} />)
+
+    await openPicker(user)
+    const first = activeName()
+
+    await user.keyboard('{ArrowRight}')
+    const second = activeName()
+    expect(second).not.toBe(first)
+
+    await user.keyboard('{ArrowLeft}')
+    expect(activeName()).toBe(first)
+  })
+
+  it('moves a whole row with Up/Down', async () => {
+    const user = userEvent.setup()
+    render(<LucideIconPicker {...inputProps()} />)
+
+    await openPicker(user)
+    const first = activeName()
+
+    await user.keyboard('{ArrowDown}')
+    const nextRow = activeName()
+    expect(nextRow).not.toBe(first)
+
+    await user.keyboard('{ArrowUp}')
+    expect(activeName()).toBe(first)
+  })
+
+  it('jumps to the ends with Home and End', async () => {
+    const user = userEvent.setup()
+    render(<LucideIconPicker {...inputProps({options: {allowedIcons: ['info', 'circle-check']}})} />)
+
+    await openPicker(user)
+    const first = activeName()
+
+    await user.keyboard('{End}')
+    expect(activeName()).not.toBe(first)
+
+    await user.keyboard('{Home}')
+    expect(activeName()).toBe(first)
+  })
+
+  it('does not run past either end of the results', async () => {
+    const user = userEvent.setup()
+    render(<LucideIconPicker {...inputProps({options: {allowedIcons: ['info', 'circle-check']}})} />)
+
+    await openPicker(user)
+
+    // Already at index 0; Left must not wrap or go negative.
+    await user.keyboard('{ArrowLeft}{ArrowLeft}')
+    const atStart = activeName()
+    expect(atStart).toBeTruthy()
+
+    // Far past the end of a two-icon list.
+    await user.keyboard('{ArrowRight}{ArrowRight}{ArrowRight}{ArrowRight}')
+    expect(activeName()).toBeTruthy()
+  })
+
+  it('commits the icon the highlight landed on', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<LucideIconPicker {...inputProps({onChange})} />)
+
+    const search = await openPicker(user)
+    await user.type(search, 'arrow')
+    await user.keyboard('{ArrowRight}')
+
+    const highlighted = activeName()?.replace('test-icon-field-grid-option-', '')
+    await user.keyboard('{Enter}')
+
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({value: highlighted}))
+  })
+})
+
 describe('dismissing', () => {
   // @sanity/ui's Popover keeps its content mounted once it has been opened, so
   // "no longer in the document" is not the signal. Focus returning to the field
