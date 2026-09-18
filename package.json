@@ -94,5 +94,8 @@
     "verifyPackage": {
       "tsconfig": false
     }
-  }
+  },
+  "contributors": [
+    "Kodamera AB (fork maintenance) <hej@kodamera.se>"
+  ]
 }
