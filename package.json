@@ -1,7 +1,7 @@
 {
-  "name": "sanity-plugin-lucide-icon-picker",
-  "version": "1.0.3",
-  "description": "Sanity plugin to select and preview Lucide icons in the Sanity Studio",
+  "name": "@kodamera/sanity-plugin-lucide-icon-picker",
+  "version": "2.0.0",
+  "description": "Lucide icon picker for Sanity Studio 6.10+ (@sanity/ui v4). Maintained fork of contentwrap/sanity-plugin-lucide-icon-picker.",
   "keywords": [
     "sanity",
     "sanity-plugin",
@@ -14,11 +14,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/contentwrap/sanity-plugin-lucide-icon-picker.git"
+    "url": "git+https://github.com/kodamera/sanity-plugin-lucide-icon-picker.git"
   },
-  "homepage": "https://github.com/contentwrap/sanity-plugin-lucide-icon-picker#readme",
+  "homepage": "https://github.com/kodamera/sanity-plugin-lucide-icon-picker#readme",
   "bugs": {
-    "url": "https://github.com/contentwrap/sanity-plugin-lucide-icon-picker/issues"
+    "url": "https://github.com/kodamera/sanity-plugin-lucide-icon-picker/issues"
   },
   "license": "MIT",
   "author": "ContentWrap <tamba@contentwrap.io>",
@@ -55,7 +55,7 @@
     "watch": "pkg-utils watch --strict"
   },
   "dependencies": {
-    "lucide-react": "^0.532.0"
+    "lucide-react": "^1.47.0"
   },
   "devDependencies": {
     "@sanity/browserslist-config": "^1.0.5",
@@ -77,14 +77,17 @@
     "typescript": "^5.8.3"
   },
   "peerDependencies": {
-    "@sanity/icons": "^3.7.0",
-    "@sanity/ui": "^2.0.0",
-    "react": "^18 || ^19",
-    "sanity": "^3"
+    "@sanity/icons": "^5.0.0",
+    "@sanity/ui": "^4.0.0",
+    "react": "^19",
+    "sanity": "^6.10.0"
   },
   "browserslist": "extends @sanity/browserslist-config",
   "engines": {
     "node": ">=18"
   },
-  "packageManager": "pnpm@9.15.1+sha512.1acb565e6193efbebda772702950469150cf12bcc764262e7587e71d19dc98a423dff9536e57ea44c49bdf790ff694e83c27be5faa23d67e0c033b583be4bfcf"
+  "packageManager": "pnpm@9.15.1+sha512.1acb565e6193efbebda772702950469150cf12bcc764262e7587e71d19dc98a423dff9536e57ea44c49bdf790ff694e83c27be5faa23d67e0c033b583be4bfcf",
+  "publishConfig": {
+    "access": "public"
+  }
 }

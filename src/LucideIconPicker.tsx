@@ -1,5 +1,6 @@
-import { TrashIcon } from '@sanity/icons';
-import { Autocomplete, Box, Button, Card, Flex, Text } from '@sanity/ui';
+import { TrashIcon } from '@sanity/icons/Trash';
+import { Box, Button, Card, Flex, Text } from '@sanity/ui';
+import { Autocomplete } from '@sanity/ui/autocomplete';
 import { type JSX, useCallback, useEffect, useMemo, useState } from 'react';
 import { type StringInputProps, set, unset } from 'sanity';
 

@@ -1,14 +1,9 @@
-import { EllipsisHorizontalIcon, SyncIcon, TrashIcon } from '@sanity/icons';
-import {
-  Box,
-  Button,
-  Card,
-  Flex,
-  Menu,
-  MenuItem,
-  Popover,
-  Text,
-} from '@sanity/ui';
+import { EllipsisHorizontalIcon } from '@sanity/icons/EllipsisHorizontal';
+import { SyncIcon } from '@sanity/icons/Sync';
+import { TrashIcon } from '@sanity/icons/Trash';
+import { Box, Button, Card, Flex, Text } from '@sanity/ui';
+import { Menu, MenuItem } from '@sanity/ui/menu';
+import { Popover } from '@sanity/ui/popover';
 import React, { useEffect, useState } from 'react';
 
 import type { AutocompleteIconOption } from './types';
