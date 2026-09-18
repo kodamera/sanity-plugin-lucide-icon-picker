@@ -21,5 +21,16 @@ export default defineConfig({
         'import/namespace': 'off',
       },
     },
+    {
+      // Test doubles for browser APIs jsdom does not implement, and partial
+      // Sanity prop objects, cannot be built without assertions — constructing
+      // a real StringInputProps or a spec-complete ResizeObserverEntry would be
+      // all ceremony and no coverage.
+      files: ['test/**', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
+      rules: {
+        'typescript/no-unnecessary-type-assertion': 'off',
+        'typescript/no-unsafe-type-assertion': 'off',
+      },
+    },
   ],
 })

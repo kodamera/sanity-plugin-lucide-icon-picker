@@ -45,7 +45,9 @@ export const iconSandbox = defineType({
       description: 'Only the four names in allowedIcons should be offered.',
       type: 'lucide-icon',
       options: {
-        allowedIcons: ['facebook', 'instagram', 'linkedin', 'youtube'],
+        // Brand icons (facebook, twitter, ...) were removed in lucide 1.x, so
+        // the whitelist uses names that actually exist.
+        allowedIcons: ['circle-alert', 'circle-check', 'info', 'triangle-alert'],
       },
     }),
     defineField({

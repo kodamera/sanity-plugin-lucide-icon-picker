@@ -171,21 +171,31 @@ let cachedLegacyAliases: ReadonlyMap<string, string> | null = null
 
 /**
  * Maps a value written by an earlier version of this plugin to the canonical
- * name, e.g. `axis3-d` -> `axis-3d`, `building2` -> `building-2`.
+ * name, e.g. `axis3-d` -> `axis-3d`, `building2` -> `building-complex`.
  *
- * Computed from the same export list rather than checked in as a fixture, so it
- * cannot drift. Names that were already correct are skipped.
+ * Resolution goes through the component reference, not through the alias's own
+ * spelling. Re-deriving would fail exactly where it matters: `Axis3D` is a
+ * deprecated alias of `Axis3d`, and running the new transform over `Axis3D`
+ * yields `axis-3-d`, which is not an icon. Only the shared component identity
+ * ties the alias back to the canonical `axis-3d`.
+ *
+ * Computed from the live export list rather than checked in as a fixture, so it
+ * cannot drift. Names that are already valid are never aliased over.
  */
 export const getLegacyAliasMap = (): ReadonlyMap<string, string> => {
   if (!cachedLegacyAliases) {
     const byName = getLucideIconsByName()
+
+    const canonicalByComponent = new Map<unknown, string>()
+    for (const icon of getAllLucideIcons()) canonicalByComponent.set(icon.component, icon.name)
+
     const aliases = new Map<string, string>()
 
-    for (const exportName of Object.keys(LucideIcons)) {
+    for (const [exportName, value] of Object.entries(LucideIcons)) {
       if (!/^[A-Z]/.test(exportName) || NON_ICON_EXPORTS.has(exportName)) continue
 
-      const canonical = toKebabCase(exportName)
-      if (!byName.has(canonical)) continue
+      const canonical = canonicalByComponent.get(value)
+      if (!canonical) continue
 
       const legacy = toLegacyKebabCase(exportName)
       if (legacy !== canonical && !byName.has(legacy)) aliases.set(legacy, canonical)
