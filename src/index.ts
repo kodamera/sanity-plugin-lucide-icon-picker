@@ -1,3 +1,14 @@
+/*!
+ * @kodamera/sanity-plugin-lucide-icon-picker
+ *
+ * Originally created by ContentWrap (https://contentwrap.io) as
+ * sanity-plugin-lucide-icon-picker. This fork is maintained by
+ * Kodamera (https://kodamera.se).
+ *
+ * MIT License. Copyright (c) 2025 ContentWrap.
+ * Copyright (c) 2026 Kodamera AB (fork maintenance).
+ */
+
 import { definePlugin, defineType } from 'sanity';
 
 import LucideIconPicker from './LucideIconPicker';

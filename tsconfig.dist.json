@@ -8,6 +8,21 @@
     "./src/**/*.test.tsx"
   ],
   "compilerOptions": {
-    "noCheck": true
+    // The build does not type-check: since @sanity/pkg-utils v12, dts
+    // generation dropped type checking entirely, and plugin-kit v8 removed the
+    // `tsc --build` step from verify-package. `pnpm typecheck` does it instead.
+    "noCheck": true,
+
+    // NOT "preserve", which is what plugin-kit's verify-package tsconfig check
+    // asks for. Since pkg-utils v12 the build runs on tsdown, which honours
+    // this setting literally, so "preserve" ships raw JSX inside dist/index.js
+    // — Sanity Studio's Vite/oxc pipeline then refuses to parse it as .js:
+    //   [PARSE_ERROR] Unexpected JSX expression ... JSX syntax is disabled
+    // pkg-utils 7 transformed JSX regardless of this setting, which is why the
+    // mismatch only appeared on upgrade. Sanity's own published packages
+    // (sanity, @sanity/ui) ship jsx-runtime calls, not raw JSX, so this matches
+    // the ecosystem. The verify-package tsconfig check is disabled in
+    // package.json for exactly this reason.
+    "jsx": "react-jsx"
   }
 }

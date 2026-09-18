@@ -1,217 +1,320 @@
-import { TrashIcon } from '@sanity/icons/Trash';
-import { Box, Button, Card, Flex, Text } from '@sanity/ui';
-import { Autocomplete } from '@sanity/ui/autocomplete';
-import { type JSX, useCallback, useEffect, useMemo, useState } from 'react';
-import { type StringInputProps, set, unset } from 'sanity';
+import {SearchIcon} from '@sanity/icons/Search'
+import {TrashIcon} from '@sanity/icons/Trash'
+import {Box, Button, Card, Flex, Text, TextInput, useClickOutsideEvent} from '@sanity/ui'
+import {Popover} from '@sanity/ui/popover'
+import {
+  type JSX,
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import {type StringInputProps, set, unset} from 'sanity'
 
-import { SelectedIconCard } from './SelectedIconCard';
-import { getAllLucideIconsAsOptions } from './lucide-icons';
-import type { LucideIconPickerOptions } from './types';
+import {GRID_COLUMNS, IconGrid, optionId} from './IconGrid'
+import {SelectedIconCard} from './SelectedIconCard'
+import {
+  filterAllowedIcons,
+  getAllLucideIcons,
+  resolveLucideIcon,
+  searchIcons,
+} from './lucide-icons'
 
 const LucideIconPicker = ({
   schemaType,
   value,
   readOnly,
   onChange,
+  elementProps,
 }: StringInputProps): JSX.Element => {
-  const [isInReplaceMode, setIsInReplaceMode] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [isOpen, setIsOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [activeIndex, setActiveIndex] = useState(0)
 
-  // Debounce search query
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 300);
+  const {
+    id: fieldId,
+    ref: fieldRef,
+    onFocus,
+    onBlur,
+    style: fieldStyle,
+    'aria-describedby': ariaDescribedBy,
+  } = elementProps
 
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+  const reactId = useId()
+  const gridId = `${fieldId}-grid`
+  const searchId = `${fieldId}-search${reactId}`
 
-  // Get all icon options for autocomplete with lazy loading
-  const allIconOptions = useMemo(() => {
-    const options: LucideIconPickerOptions =
-      (schemaType.options as LucideIconPickerOptions) || {};
-    const allOptions = getAllLucideIconsAsOptions();
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const contentRef = useRef<HTMLDivElement | null>(null)
+  const searchRef = useRef<HTMLInputElement | null>(null)
 
-    // Apply icon whitelist if provided
-    if (options.allowedIcons) {
-      return allOptions.filter((option) =>
-        options.allowedIcons!.includes(option.value),
-      );
-    }
+  const allIcons = useMemo(() => {
+    // `allowedIcons` is not part of Sanity's StringOptions, and it is
+    // user-authored, so read it reflectively and validate rather than assert a
+    // shape onto whatever the schema happens to carry.
+    const allowedIcons: unknown = Reflect.get(schemaType.options ?? {}, 'allowedIcons')
+    const allowed = Array.isArray(allowedIcons)
+      ? allowedIcons.filter((name): name is string => typeof name === 'string')
+      : undefined
 
-    return allOptions;
-  }, [schemaType.options]);
+    return filterAllowedIcons(getAllLucideIcons(), allowed)
+  }, [schemaType.options])
 
-  // Filtered options based on search query (lazy loaded)
-  const iconOptions = useMemo(() => {
-    if (!debouncedQuery || !debouncedQuery.trim()) {
-      // Return first 200 options for initial load
-      return allIconOptions.slice(0, 200);
-    }
+  // No debounce: the search is a single `includes` over a pre-lowercased string
+  // per icon, and the grid is virtualized, so filtering 1848 icons is well
+  // inside a frame. The old 300ms debounce existed to avoid re-rendering an
+  // unvirtualized list and made typing feel laggy.
+  const results = useMemo(() => searchIcons(allIcons, query), [allIcons, query])
 
-    const searchTerm = debouncedQuery.toLowerCase();
-    const filtered = allIconOptions.filter((option) =>
-      option.tags.some((tag) => tag.toLowerCase().includes(searchTerm)),
-    );
+  const selectedIcon = useMemo(() => resolveLucideIcon(value), [value])
 
-    // Return first 100 search results
-    return filtered.slice(0, 100);
-  }, [allIconOptions, debouncedQuery]);
+  // Narrowing the results can leave the stored index past the end. Clamping
+  // here rather than in an effect keeps it correct on the very first render
+  // after a keystroke, with no extra render pass.
+  const safeActiveIndex = results.length === 0 ? -1 : Math.min(activeIndex, results.length - 1)
+  const activeIcon = safeActiveIndex >= 0 ? results[safeActiveIndex] : undefined
 
-  // Find current selected option with defensive programming (MOVED UP)
-  const selectedOption = useMemo(() => {
-    if (!value || typeof value !== 'string') {
-      return undefined;
-    }
-
-    return allIconOptions.find((opt) => opt.value === value);
-  }, [allIconOptions, value]);
-
-  // Handle query change for autocomplete
-  const handleQueryChange = useCallback((query: string | null) => {
-    setSearchQuery(query || '');
-  }, []);
-
-  // Render each option with icon and name
-  const renderOption = useCallback((option: any) => {
-    return (
-      <Card as="button" padding={2} radius={2} tone="inherit">
-        <Flex align="center" gap={3}>
-          <Box
-            style={{ fontSize: '1.2em', display: 'flex', alignItems: 'center' }}
-          >
-            {option?.icon ? (
-              <option.icon />
-            ) : (
-              <Text size={1} muted>
-                ?
-              </Text>
-            )}
-          </Box>
-          <Text size={1} weight="medium">
-            {option?.label || 'Unknown icon'}
-          </Text>
-        </Flex>
-      </Card>
-    );
-  }, []);
-
-  // Handle selection
-  const handleChange = useCallback(
-    (selectedValue: string | undefined) => {
-      onChange(selectedValue ? set(selectedValue) : unset());
-      setIsInReplaceMode(false);
-      setSearchQuery('');
+  const close = useCallback(
+    (restoreFocus = false) => {
+      setIsOpen(false)
+      setQuery('')
+      setActiveIndex(0)
+      // Only when dismissed from the keyboard. Stealing focus back after a
+      // click outside would fight whatever the user just clicked on.
+      if (restoreFocus) fieldRef.current?.focus()
     },
-    [onChange],
-  );
+    [fieldRef],
+  )
 
-  // Handle clear (actually remove the value)
+  const open = useCallback(() => {
+    if (readOnly) return
+    setIsOpen(true)
+    setQuery('')
+    setActiveIndex(0)
+  }, [readOnly])
+
+  // Both elements count as "inside". The popover renders through a portal, so
+  // its content is NOT a DOM descendant of rootRef — listing only rootRef made
+  // every click inside the picker look like an outside click, which closed the
+  // popover on mousedown and unmounted the tile before its click could land.
+  // The grid opened but nothing could ever be selected.
+  useClickOutsideEvent(isOpen && (() => close()), () => [
+    rootRef.current,
+    contentRef.current,
+  ])
+
+  // Move focus into the search field once the popover has mounted.
+  useEffect(() => {
+    if (isOpen) searchRef.current?.focus()
+  }, [isOpen])
+
+  const commit = useCallback(
+    (name: string) => {
+      onChange(set(name))
+      close()
+    },
+    [close, onChange],
+  )
+
   const handleClear = useCallback(() => {
-    onChange(unset());
-    setIsInReplaceMode(false);
-    setSearchQuery('');
-  }, [onChange]);
+    onChange(unset())
+    close()
+  }, [close, onChange])
 
-  // Handle replace (switch to replace mode with current value pre-filled)
-  const handleReplace = useCallback(() => {
-    setIsInReplaceMode(true);
-    // Pre-fill with current selection
-    if (selectedOption) {
-      setSearchQuery(selectedOption.label);
-    }
-  }, [selectedOption]);
-
-  // Handle blur (click away) - revert to card view
-  const handleBlur = useCallback(() => {
-    if (isInReplaceMode) {
-      setIsInReplaceMode(false);
-      setSearchQuery('');
-    }
-  }, [isInReplaceMode]);
-
-  // Show selected card if icon is selected and not in replace mode
-  if (value && !isInReplaceMode) {
-    // If we have a stored value but can't find the icon, show a fallback card
-    if (!selectedOption) {
-      return (
-        <Card
-          border
-          padding={1}
-          radius={2}
-          tone="caution"
-          onClick={() => {
-            if (!readOnly) {
-              handleReplace();
-            }
-          }}
-        >
-          <Flex align="center" justify="space-between">
-            <Flex align="center" gap={2} padding={2}>
-              <Box
-                style={{
-                  fontSize: '1.25rem',
-                  marginBottom: '-0.25rem',
-                  lineHeight: 1,
-                }}
-              >
-                <Text size={1} muted>
-                  ?
-                </Text>
-              </Box>
-              <Box>
-                <Text size={1} weight="medium">
-                  {value} (not found)
-                </Text>
-              </Box>
-            </Flex>
-            {!readOnly && (
-              <Button
-                icon={TrashIcon}
-                mode="ghost"
-                tone="critical"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleClear();
-                }}
-                title="Clear invalid icon"
-              />
-            )}
-          </Flex>
-        </Card>
-      );
-    }
-
-    return (
-      <SelectedIconCard
-        selectedIcon={selectedOption}
-        onReplace={handleReplace}
-        onClear={handleClear}
-        readOnly={readOnly}
-      />
-    );
-  }
-
-  // Show autocomplete for searching/selecting or replace mode
-  return (
-    <Autocomplete
-      id="lucide-icon-picker"
-      options={iconOptions}
-      value={isInReplaceMode ? selectedOption?.value : undefined}
-      placeholder={
-        isInReplaceMode ? 'Replace icon...' : 'Search for an icon...'
+  const handleSearchKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      // Before the empty guard below: Escape has to work even when the search
+      // matches nothing, which is exactly when a user wants out.
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        return close(true)
       }
-      onQueryChange={handleQueryChange}
-      renderOption={renderOption}
-      onChange={handleChange}
-      onBlur={handleBlur}
-      disabled={readOnly}
-      openButton
-      autoFocus={isInReplaceMode}
-      {...(isInReplaceMode && selectedOption ? { onClear: handleClear } : {})}
-    />
-  );
-};
 
-export default LucideIconPicker;
+      const lastIndex = results.length - 1
+      if (lastIndex < 0) return
+
+      const move = (next: number) => {
+        event.preventDefault()
+        setActiveIndex(Math.max(0, Math.min(lastIndex, next)))
+      }
+
+      switch (event.key) {
+        case 'ArrowRight':
+          return move(safeActiveIndex + 1)
+        case 'ArrowLeft':
+          return move(safeActiveIndex - 1)
+        case 'ArrowDown':
+          return move(safeActiveIndex + GRID_COLUMNS)
+        case 'ArrowUp':
+          return move(safeActiveIndex - GRID_COLUMNS)
+        case 'Home':
+          return move(0)
+        case 'End':
+          return move(lastIndex)
+        case 'Enter': {
+          if (!activeIcon) return undefined
+          event.preventDefault()
+          return commit(activeIcon.name)
+        }
+        default:
+          return undefined
+      }
+    },
+    [activeIcon, close, safeActiveIndex, commit, results.length],
+  )
+
+  const picker = (
+    <Box padding={1} ref={contentRef} style={{width: 320}}>
+      <Box paddingBottom={1}>
+        <TextInput
+          aria-activedescendant={activeIcon ? optionId(gridId, activeIcon.name) : undefined}
+          aria-controls={gridId}
+          aria-expanded
+          autoComplete="off"
+          fontSize={1}
+          icon={SearchIcon}
+          id={searchId}
+          onChange={(event) => {
+            setQuery(event.currentTarget.value)
+            setActiveIndex(0)
+          }}
+          onKeyDown={handleSearchKeyDown}
+          placeholder={`Search ${allIcons.length} icons…`}
+          ref={searchRef}
+          // ARIA 1.2's combobox pattern puts role="combobox" on the text input
+          // that owns the listbox. The rule reads it as a redundant role on an
+          // <input> and suggests a native <select>, which cannot present a
+          // virtualized grid of icon tiles.
+          // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role
+          role="combobox"
+          value={query}
+        />
+      </Box>
+
+      <IconGrid
+        activeIndex={safeActiveIndex}
+        icons={results}
+        id={gridId}
+        onActiveIndexChange={setActiveIndex}
+        onSelect={commit}
+        selectedName={selectedIcon?.name}
+      />
+
+      <Flex align="center" justify="space-between" paddingTop={2} paddingX={2}>
+        <Text muted size={0}>
+          {results.length === allIcons.length
+            ? `${allIcons.length} icons`
+            : `${results.length} of ${allIcons.length}`}
+        </Text>
+        {activeIcon && (
+          <Text muted size={0} textOverflow="ellipsis">
+            {activeIcon.name}
+          </Text>
+        )}
+      </Flex>
+    </Box>
+  )
+
+  // A stored value that resolves to no icon at all — a name from a much older
+  // lucide, or a hand-edited document. Say so rather than rendering an empty
+  // card, and offer a way out.
+  const unresolved = value && !selectedIcon
+
+  return (
+    <div ref={rootRef}>
+      <Popover
+        constrainSize
+        content={picker}
+        open={isOpen}
+        placement="bottom-start"
+        portal
+        radius={2}
+      >
+        <div>
+          {selectedIcon && (
+            <SelectedIconCard
+              elementProps={elementProps}
+              icon={selectedIcon}
+              onClear={handleClear}
+              onReplace={open}
+              readOnly={readOnly}
+            />
+          )}
+
+          {unresolved && (
+            <Card border padding={1} radius={2} tone="caution">
+              <Flex align="center" gap={1} justify="space-between">
+                <Card
+                  aria-describedby={ariaDescribedBy}
+                  as="button"
+                  disabled={readOnly}
+                  flex={1}
+                  id={fieldId}
+                  onBlur={onBlur}
+                  onClick={open}
+                  onFocus={onFocus}
+                  padding={2}
+                  radius={2}
+                  ref={fieldRef}
+                  style={fieldStyle}
+                  title="Replace icon"
+                  tone="inherit"
+                  type="button"
+                >
+                  <Text size={1} textOverflow="ellipsis" weight="medium">
+                    {value} (not found)
+                  </Text>
+                </Card>
+                {!readOnly && (
+                  <Button
+                    aria-label="Clear icon"
+                    icon={TrashIcon}
+                    mode="ghost"
+                    onClick={handleClear}
+                    tone="critical"
+                  />
+                )}
+              </Flex>
+            </Card>
+          )}
+
+          {!value && (
+            // Same shape as the selected and caution states: the border lives
+            // on an outer Card, because `Card as="button"` does not render one,
+            // which left the empty field looking like loose text.
+            <Card border padding={1} radius={2} tone="default">
+              <Card
+                aria-describedby={ariaDescribedBy}
+                as="button"
+                disabled={readOnly}
+                id={fieldId}
+                onBlur={onBlur}
+                onClick={open}
+                onFocus={onFocus}
+                padding={2}
+                radius={2}
+                ref={fieldRef}
+                style={{width: '100%', ...fieldStyle}}
+                tone="inherit"
+                type="button"
+              >
+                <Flex align="center" gap={3}>
+                  <SearchIcon />
+                  <Text muted size={1}>
+                    Select an icon…
+                  </Text>
+                </Flex>
+              </Card>
+            </Card>
+          )}
+        </div>
+      </Popover>
+    </div>
+  )
+}
+
+export default LucideIconPicker
