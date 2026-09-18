@@ -1,5 +1,8 @@
 import {describe, expect, it} from 'vitest'
 
+import legacyValuesFixture from '../test/fixtures/legacy-values.json'
+import {legacyBrandIcons} from './legacy-brand-icons'
+
 import {
   filterAllowedIcons,
   getAllLucideIcons,
@@ -75,6 +78,11 @@ describe('canonical names', () => {
     const unresolvable = getAllLucideIcons()
       .map((icon) => icon.name)
       .filter((name) => !valid.has(name))
+      // The bundled brand icons are the deliberate exception: lucide deleted
+      // them, so they cannot be in lucide's own dynamic import map. The Studio
+      // renders them from the copies in ./legacy-brand-icons; a frontend has to
+      // handle them itself, which the README documents.
+      .filter((name) => !legacyBrandIcons.has(name))
 
     expect(unresolvable).toEqual([])
   })
@@ -162,5 +170,75 @@ describe('allowedIcons', () => {
     const icons = getAllLucideIcons()
 
     expect(filterAllowedIcons(icons, undefined)).toBe(icons)
+  })
+})
+
+describe('backward compatibility with pre-2.0 documents', () => {
+  // Every distinct value the 1.x picker could write, generated from
+  // lucide-react@0.532.0 — the exact version it shipped against.
+  const legacyValues: string[] = legacyValuesFixture
+
+  it('covers every value the old picker could store', () => {
+    const unresolvable = legacyValues.filter((value) => !resolveLucideIcon(value))
+
+    // A drop-in replacement: swapping the package must not leave a single
+    // existing document showing "(not found)".
+    expect(unresolvable).toEqual([])
+    expect(legacyValues.length).toBeGreaterThan(1800)
+  })
+
+  it('still renders the brand icons lucide deleted in 1.x', () => {
+    // These have no component in lucide 1.x at all, so they are bundled.
+    const removed = [
+      'chrome',
+      'codepen',
+      'codesandbox',
+      'dribbble',
+      'facebook',
+      'figma',
+      'framer',
+      'github',
+      'gitlab',
+      'instagram',
+      'linkedin',
+      'pocket',
+      'rail-symbol',
+      'slack',
+      'trello',
+      'twitch',
+      'twitter',
+      'youtube',
+    ]
+
+    for (const name of removed) {
+      const icon = resolveLucideIcon(name)
+      expect(icon, `${name} should resolve`).toBeDefined()
+      expect(icon?.name).toBe(name)
+      expect(typeof icon?.component).not.toBe('undefined')
+    }
+  })
+
+  it('keeps the restored brand icons searchable by their old names', () => {
+    expect(searchIcons(getAllLucideIcons(), 'Facebook').map((i) => i.name)).toContain('facebook')
+    expect(searchIcons(getAllLucideIcons(), 'github').map((i) => i.name)).toContain('github')
+  })
+})
+
+describe('audit script stays in sync', () => {
+  it('names exactly the brand icons the plugin bundles', async () => {
+    const {REMOVED_BRAND_ICONS} = await import('../scripts/audit-icon-values.mjs')
+
+    expect([...REMOVED_BRAND_ICONS].sort((a: string, b: string) => a.localeCompare(b))).toEqual(
+      [...legacyBrandIcons.keys()].sort((a, b) => a.localeCompare(b)),
+    )
+  })
+
+  it('classifies every legacy value the same way the plugin resolves it', async () => {
+    const {classify} = await import('../scripts/audit-icon-values.mjs')
+    const disagreements = (legacyValuesFixture as string[]).filter(
+      (value) => Boolean(resolveLucideIcon(value)) !== (classify(value).status !== 'unknown'),
+    )
+
+    expect(disagreements).toEqual([])
   })
 })

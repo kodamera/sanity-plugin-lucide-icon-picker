@@ -1,6 +1,7 @@
 import * as LucideIcons from 'lucide-react'
 import type {JSX} from 'react'
 
+import {legacyBrandIconAliases, legacyBrandIcons} from './legacy-brand-icons'
 import type {IconObject, LucideIconComponent} from './types'
 
 /**
@@ -148,9 +149,30 @@ export const getAllLucideIcons = (): readonly IconObject[] => {
     const aliases = buildAliasIndex()
     const registry = getIconRegistry()
 
-    cachedIcons = registry
+    const icons = registry
       ? Object.entries(registry).map(([name, component]) => buildIcon(name, component, aliases))
       : buildIconsFromExports(aliases)
+
+    const present = new Set(icons.map((icon) => icon.name))
+
+    // Brand icons Lucide deleted in 1.x, re-added so that documents written by
+    // earlier versions still render. Skipped if Lucide ever ships one again.
+    for (const [name, component] of legacyBrandIcons) {
+      if (present.has(name)) continue
+
+      const pascal =
+        Object.entries(legacyBrandIconAliases).find(([, kebab]) => kebab === name)?.[0] ?? name
+      const tags = [...new Set([name, ...splitWords(name), pascal, pascal.toLowerCase()])]
+
+      icons.push({
+        component,
+        name,
+        searchText: tags.join('\n').toLowerCase(),
+        tags,
+      })
+    }
+
+    cachedIcons = icons
   }
 
   return cachedIcons

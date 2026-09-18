@@ -32,5 +32,12 @@ export default defineConfig({
         'typescript/no-unsafe-type-assertion': 'off',
       },
     },
+    {
+      // A CLI whose entire output is a report printed to stdout.
+      files: ['scripts/**'],
+      rules: {
+        'no-console': 'off',
+      },
+    },
   ],
 })

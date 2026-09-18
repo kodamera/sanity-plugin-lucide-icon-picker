@@ -134,6 +134,51 @@ exist are ignored rather than erroring.
 
 ---
 
+## Upgrading from `sanity-plugin-lucide-icon-picker`
+
+**This is a drop-in replacement.** The schema type name (`lucide-icon`), the
+exports, the stored value shape and the `allowedIcons` option are all unchanged,
+so swapping the dependency and the import is the whole migration.
+
+```diff
+- import {lucideIconPicker} from 'sanity-plugin-lucide-icon-picker'
++ import {lucideIconPicker} from '@kodamera/sanity-plugin-lucide-icon-picker'
+```
+
+**No existing data is touched.** All 1,837 distinct values the previous version
+could store still resolve, and the plugin never rewrites a value on read — it
+only writes when an editor actively picks or clears an icon. There is a test
+asserting the full 1,837-value coverage, so this cannot silently regress.
+
+Two things are worth knowing:
+
+- **Values are stored under Lucide's canonical names from v2 on.** If an editor
+  re-picks an icon whose name changed upstream, the field is rewritten
+  (`bar-chart2` → `chart-no-axes-column`). `DynamicIcon` accepts both spellings,
+  so frontends using it are unaffected; a frontend that hardcodes old strings
+  should be checked.
+- **Lucide deleted 18 brand icons in 1.x** (`facebook`, `github`, `twitter`,
+  `slack`, …). This plugin bundles copies of them, taken from lucide-react
+  0.532.0 (ISC licensed), so existing documents keep rendering in the Studio and
+  the icons remain pickable. They are frozen — Lucide will not update them —
+  and because they no longer exist upstream, **`DynamicIcon` cannot load them**.
+  Render those few explicitly on your frontend, or swap them for an icon set
+  that still ships brand marks.
+
+### Auditing a dataset
+
+To see exactly what a dataset holds before upgrading:
+
+```sh
+node scripts/audit-icon-values.mjs --project <projectId> --dataset production \
+  --query '*[_type == "page"]{icon, "nested": sections[].icon}'
+```
+
+It reads only, and reports each distinct value as `ok`, `renamed` (with what it
+would become), `brand`, or `unknown`.
+
+---
+
 ## Frontend integration
 
 Values are stored as Lucide's own canonical kebab-case names (`arrow-right`,
@@ -151,6 +196,9 @@ export default function MyComponent({iconName}) {
 
 `DynamicIcon` loads each icon on demand, so only the icons you actually render
 reach the browser.
+
+> The 18 brand icons Lucide removed in 1.x are the exception — `DynamicIcon`
+> cannot resolve them. See [Upgrading](#upgrading-from-sanity-plugin-lucide-icon-picker).
 
 ---
 
