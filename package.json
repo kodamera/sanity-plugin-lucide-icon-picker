@@ -37,6 +37,7 @@
   ],
   "scripts": {
     "build": "plugin-kit verify-package --silent && pkg-utils build --strict --check --clean",
+    "dev": "pnpm --dir dev dev",
     "format": "oxfmt",
     "link-watch": "plugin-kit link-watch",
     "lint": "oxlint",
@@ -79,6 +80,11 @@
     "exports": {
       ".": "./dist/index.js",
       "./package.json": "./package.json"
+    }
+  },
+  "sanityPlugin": {
+    "verifyPackage": {
+      "tsconfig": false
     }
   }
 }
