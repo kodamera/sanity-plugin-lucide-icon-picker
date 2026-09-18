@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # Required for npm provenance and for trusted publishing (OIDC).
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Fail the release rather than publish something broken. `build` runs
+      # verify-package and pkg-utils; the rest mirror CI.
+      - run: pnpm run lint
+      - run: pnpm run typecheck
+      - run: pnpm run test
+      - run: pnpm run build
+
+      - name: Verify the build output contains no untransformed JSX
+        run: |
+          if grep -qE '(=> <|</[A-Za-z])' dist/index.js; then
+            echo "dist/index.js contains raw JSX — check tsconfig.dist.json's jsx setting" >&2
+            exit 1
+          fi
+
+      - name: Check the tag matches package.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "${{ github.event_name }}" = "release" ] && [ "$tag" != "$pkg" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json version $pkg" >&2
+            exit 1
+          fi
+
+      # No NODE_AUTH_TOKEN: this repo is set up as a trusted publisher on
+      # npmjs.com, so npm authenticates over OIDC and attaches provenance
+      # automatically. Provenance requires a public repo, which this is.
+      #
+      # `prepublishOnly` would re-run the build that just ran, so skip scripts.
+      - run: npm publish --provenance --access public --ignore-scripts

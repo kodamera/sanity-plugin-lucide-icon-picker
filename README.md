@@ -250,6 +250,15 @@ pnpm test        # vitest
 pnpm build       # verify-package + pkg-utils
 ```
 
+### Releasing
+
+Publishing runs from `.github/workflows/release.yml` when a GitHub release is
+published. It authenticates over OIDC as an npm
+[trusted publisher](https://docs.npmjs.com/trusted-publishers) — there is no
+long-lived npm token — and attaches provenance. Bump `version` in
+`package.json`, tag `vX.Y.Z` and publish the release; the workflow refuses to
+continue if the tag and `package.json` disagree.
+
 ---
 
 ## Credits
