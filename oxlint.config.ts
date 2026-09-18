@@ -4,7 +4,12 @@ import {defineConfig} from 'oxlint'
 export default defineConfig({
   extends: [sanityPluginKitOxlint],
   // `ignorePatterns` do not propagate through `extends`, so spread them.
-  ignorePatterns: [...(sanityPluginKitOxlint.ignorePatterns ?? [])],
+  ignorePatterns: [
+    ...(sanityPluginKitOxlint.ignorePatterns ?? []),
+    // The dev studio is a separate package with its own node_modules, so the
+    // type-aware rules here cannot resolve its imports.
+    'dev/**',
+  ],
   overrides: [
     {
       files: ['src/lucide-icons.tsx'],

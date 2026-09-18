@@ -24,3 +24,10 @@ coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log* 
+
+# Dev studio
+dev/node_modules/
+dev/dist/
+dev/.sanity/
+.env
+.env.local

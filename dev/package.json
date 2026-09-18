@@ -1,0 +1,20 @@
+{
+  "name": "lucide-icon-picker-dev-studio",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local Sanity Studio for developing and verifying the Lucide icon picker. Never published.",
+  "type": "module",
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build",
+    "start": "sanity start"
+  },
+  "dependencies": {
+    "@kodamera/sanity-plugin-lucide-icon-picker": "link:..",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "sanity": "^6.15.0",
+    "styled-components": "^6.5.3"
+  },
+  "packageManager": "pnpm@9.15.1+sha512.1acb565e6193efbebda772702950469150cf12bcc764262e7587e71d19dc98a423dff9536e57ea44c49bdf790ff694e83c27be5faa23d67e0c033b583be4bfcf"
+}
