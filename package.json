@@ -32,20 +32,10 @@
     },
     "./package.json": "./package.json"
   },
-  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist",
-    "sanity.json",
-    "src",
-    "v2-incompatible.js"
+    "dist"
   ],
-  "sanityPlugin": {
-    "verifyPackage": {
-      "eslintImports": false,
-      "sanityV2Json": false
-    }
-  },
   "scripts": {
     "build": "plugin-kit verify-package --silent && pkg-utils build --strict --check --clean",
     "format": "prettier --write --cache --ignore-unknown .",
@@ -59,7 +49,6 @@
   },
   "devDependencies": {
     "@sanity/browserslist-config": "^1.0.5",
-    "@sanity/incompatible-plugin": "^1.0.5",
     "@sanity/pkg-utils": "^7.8.10",
     "@sanity/plugin-kit": "^4.0.19",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
@@ -84,7 +73,7 @@
   },
   "browserslist": "extends @sanity/browserslist-config",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19 <22 || >=22.12"
   },
   "packageManager": "pnpm@9.15.1+sha512.1acb565e6193efbebda772702950469150cf12bcc764262e7587e71d19dc98a423dff9536e57ea44c49bdf790ff694e83c27be5faa23d67e0c033b583be4bfcf",
   "publishConfig": {
