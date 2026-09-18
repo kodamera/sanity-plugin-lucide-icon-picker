@@ -48,6 +48,7 @@ const LucideIconPicker = ({
   const searchId = `${fieldId}-search${reactId}`
 
   const rootRef = useRef<HTMLDivElement | null>(null)
+  const contentRef = useRef<HTMLDivElement | null>(null)
   const searchRef = useRef<HTMLInputElement | null>(null)
 
   const allIcons = useMemo(() => {
@@ -89,7 +90,12 @@ const LucideIconPicker = ({
     setActiveIndex(0)
   }, [readOnly])
 
-  useClickOutsideEvent(isOpen && close, () => [rootRef.current])
+  // Both elements count as "inside". The popover renders through a portal, so
+  // its content is NOT a DOM descendant of rootRef — listing only rootRef made
+  // every click inside the picker look like an outside click, which closed the
+  // popover on mousedown and unmounted the tile before its click could land.
+  // The grid opened but nothing could ever be selected.
+  useClickOutsideEvent(isOpen && close, () => [rootRef.current, contentRef.current])
 
   // Move focus into the search field once the popover has mounted.
   useEffect(() => {
@@ -145,7 +151,7 @@ const LucideIconPicker = ({
   )
 
   const picker = (
-    <Box padding={1} style={{width: 320}}>
+    <Box padding={1} ref={contentRef} style={{width: 320}}>
       <Box paddingBottom={1}>
         <TextInput
           aria-activedescendant={activeIcon ? optionId(gridId, activeIcon.name) : undefined}
@@ -258,28 +264,32 @@ const LucideIconPicker = ({
           )}
 
           {!value && (
-            <Card
-              aria-describedby={ariaDescribedBy}
-              as="button"
-              border
-              disabled={readOnly}
-              id={fieldId}
-              onBlur={onBlur}
-              onClick={open}
-              onFocus={onFocus}
-              padding={3}
-              radius={2}
-              ref={fieldRef}
-              style={{width: '100%', ...fieldStyle}}
-              tone="inherit"
-              type="button"
-            >
-              <Flex align="center" gap={3}>
-                <SearchIcon />
-                <Text muted size={1}>
-                  Select an icon…
-                </Text>
-              </Flex>
+            // Same shape as the selected and caution states: the border lives
+            // on an outer Card, because `Card as="button"` does not render one,
+            // which left the empty field looking like loose text.
+            <Card border padding={1} radius={2} tone="default">
+              <Card
+                aria-describedby={ariaDescribedBy}
+                as="button"
+                disabled={readOnly}
+                id={fieldId}
+                onBlur={onBlur}
+                onClick={open}
+                onFocus={onFocus}
+                padding={2}
+                radius={2}
+                ref={fieldRef}
+                style={{width: '100%', ...fieldStyle}}
+                tone="inherit"
+                type="button"
+              >
+                <Flex align="center" gap={3}>
+                  <SearchIcon />
+                  <Text muted size={1}>
+                    Select an icon…
+                  </Text>
+                </Flex>
+              </Card>
             </Card>
           )}
         </div>

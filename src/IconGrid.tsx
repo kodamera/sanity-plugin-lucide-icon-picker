@@ -15,6 +15,9 @@ export const GRID_COLUMNS = 8
 
 const ROW_HEIGHT = 40
 
+/** Visible height of the scroll area. */
+const MAX_HEIGHT = 280
+
 /** Rows kept mounted above and below the viewport, to hide scroll tearing. */
 const OVERSCAN = 4
 
@@ -49,8 +52,13 @@ export const IconGrid = ({
   // oxlint-disable-next-line react/incompatible-library
   const virtualizer = useVirtualizer({
     count: rowCount,
-    getScrollElement: () => scrollRef.current,
     estimateSize: () => ROW_HEIGHT,
+    getScrollElement: () => scrollRef.current,
+    // The window to assume before the scroll element has been measured. Without
+    // it the first render mounts no rows at all in any environment that lacks
+    // layout (SSR, jsdom); in a browser the real measurement replaces it
+    // immediately.
+    initialRect: {height: MAX_HEIGHT, width: 320},
     overscan: OVERSCAN,
   })
 
@@ -81,7 +89,7 @@ export const IconGrid = ({
       // virtualized grid, which no native form control can express.
       // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role
       role="listbox"
-      style={{maxHeight: 280, overflowY: 'auto', overscrollBehavior: 'contain'}}
+      style={{maxHeight: MAX_HEIGHT, overflowY: 'auto', overscrollBehavior: 'contain'}}
     >
       <div style={{height: virtualizer.getTotalSize(), position: 'relative', width: '100%'}}>
         {virtualizer.getVirtualItems().map((row) => {
