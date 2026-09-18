@@ -47,6 +47,7 @@
   "dependencies": {
     "@sanity/icons": "^5.0.0",
     "@sanity/ui": "^4.0.0",
+    "@tanstack/react-virtual": "^3.14.13",
     "lucide-react": "^1.47.0"
   },
   "devDependencies": {

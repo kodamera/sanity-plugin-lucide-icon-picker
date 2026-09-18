@@ -16,15 +16,5 @@ export default defineConfig({
         'import/namespace': 'off',
       },
     },
-    {
-      // TEMPORARY: the current enumeration casts through
-      // `as keyof typeof LucideIcons` and `ComponentType<any>`, and the picker
-      // casts `schemaType.options`. All of them are removed by the typed
-      // rewrite in the next commit, and so is this override.
-      files: ['src/lucide-icons.tsx', 'src/LucideIconPicker.tsx'],
-      rules: {
-        'typescript/no-unsafe-type-assertion': 'off',
-      },
-    },
   ],
 })

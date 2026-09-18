@@ -1,121 +1,89 @@
-import { EllipsisHorizontalIcon } from '@sanity/icons/EllipsisHorizontal';
-import { SyncIcon } from '@sanity/icons/Sync';
-import { TrashIcon } from '@sanity/icons/Trash';
-import { Box, Button, Card, Flex, Text } from '@sanity/ui';
-import { Menu, MenuItem } from '@sanity/ui/menu';
-import { Popover } from '@sanity/ui/popover';
-import React, { useEffect, useState } from 'react';
+import {EllipsisHorizontalIcon} from '@sanity/icons/EllipsisHorizontal'
+import {SyncIcon} from '@sanity/icons/Sync'
+import {TrashIcon} from '@sanity/icons/Trash'
+import {Box, Button, Card, Flex, Text} from '@sanity/ui'
+import {Menu, MenuButton, MenuItem} from '@sanity/ui/menu'
+import type {JSX} from 'react'
+import type {StringInputProps} from 'sanity'
 
-import type { AutocompleteIconOption } from './types';
+import {IconGlyph} from './lucide-icons'
+import type {IconObject} from './types'
 
-interface SelectedIconCardProps {
-  selectedIcon: AutocompleteIconOption;
-  onReplace: () => void;
-  onClear: () => void;
-  readOnly?: boolean;
+export interface SelectedIconCardProps {
+  icon: IconObject
+  onReplace: () => void
+  onClear: () => void
+  readOnly?: boolean
+  elementProps: StringInputProps['elementProps']
 }
 
-export const SelectedIconCard: React.FC<SelectedIconCardProps> = ({
-  selectedIcon,
+export const SelectedIconCard = ({
+  icon,
   onReplace,
   onClear,
   readOnly = false,
-}) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  // Handle Escape key to close popover
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isMenuOpen) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    if (isMenuOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isMenuOpen]);
+  elementProps,
+}: SelectedIconCardProps): JSX.Element => {
+  const {id, ref, onFocus, onBlur, style, 'aria-describedby': ariaDescribedBy} = elementProps
 
   return (
-    <Card
-      border
-      padding={1}
-      radius={2}
-      tone="default"
-      onClick={() => {
-        if (!readOnly) {
-          onReplace();
-        }
-      }}
-    >
-      <Flex align="center" justify="space-between">
-        <Flex align="center" gap={2} padding={2}>
-          <Box
-            style={{
-              fontSize: '1.25rem',
-              marginBottom: '-0.25rem',
-              lineHeight: 1,
-            }}
-          >
-            {selectedIcon?.icon ? (
-              <selectedIcon.icon />
-            ) : (
-              <Text size={1} muted>
-                ?
-              </Text>
-            )}
-          </Box>
-          <Box>
-            <Text size={1} weight="medium">
-              {selectedIcon?.label || 'Unknown icon'}
+    <Card border padding={1} radius={2} tone="default">
+      <Flex align="center" gap={1} justify="space-between">
+        {/*
+          A real <button>, not an onClick on the Card. The Card renders a div,
+          so the old version had no role, no tabIndex, no keyboard activation
+          and no accessible name — replacing an icon was impossible with a
+          keyboard or a screen reader. It also carries elementProps.id, which
+          is what the surrounding FormField label points at with htmlFor.
+        */}
+        <Card
+          aria-describedby={ariaDescribedBy}
+          as="button"
+          disabled={readOnly}
+          flex={1}
+          id={id}
+          onBlur={onBlur}
+          onClick={onReplace}
+          onFocus={onFocus}
+          padding={2}
+          radius={2}
+          ref={ref}
+          style={style}
+          title="Replace icon"
+          tone="inherit"
+          type="button"
+        >
+          <Flex align="center" gap={3}>
+            <IconGlyph icon={icon.component} />
+            <Text size={1} textOverflow="ellipsis" weight="medium">
+              {icon.name}
             </Text>
-          </Box>
-        </Flex>
+          </Flex>
+        </Card>
+
         {!readOnly && (
-          <Popover
-            content={
-              <Menu>
-                <MenuItem
-                  icon={TrashIcon}
-                  text="Clear"
-                  tone="critical"
-                  onClick={(e) => {
-                    onClear();
-                    setIsMenuOpen(false);
-                    e.stopPropagation();
-                  }}
+          <Box>
+            <MenuButton
+              button={
+                <Button
+                  aria-label="Icon options"
+                  icon={EllipsisHorizontalIcon}
+                  mode="bleed"
+                  padding={2}
                 />
-                <MenuItem
-                  icon={SyncIcon}
-                  text="Replace"
-                  onClick={(e) => {
-                    onReplace();
-                    setIsMenuOpen(false);
-                    e.stopPropagation();
-                  }}
-                />
-              </Menu>
-            }
-            open={isMenuOpen}
-            portal
-            constrainSize
-          >
-            <Button
-              icon={EllipsisHorizontalIcon}
-              mode="bleed"
-              padding={2}
-              onClick={(e) => {
-                setIsMenuOpen(!isMenuOpen);
-                e.stopPropagation();
-              }}
+              }
+              id={`${id}-menu`}
+              menu={
+                <Menu>
+                  <MenuItem icon={SyncIcon} onClick={onReplace} text="Replace" />
+                  <MenuItem icon={TrashIcon} onClick={onClear} text="Clear" tone="critical" />
+                </Menu>
+              }
+              popover={{constrainSize: true, placement: 'bottom-end', portal: true}}
             />
-          </Popover>
+          </Box>
         )}
       </Flex>
     </Card>
-  );
-};
+  )
+}

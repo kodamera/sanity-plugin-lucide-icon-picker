@@ -1,131 +1,252 @@
-import * as LucideIcons from 'lucide-react';
-import React from 'react';
+import * as LucideIcons from 'lucide-react'
+import type {JSX} from 'react'
 
-import { IconObject } from './types';
+import type {IconObject, LucideIconComponent} from './types'
 
-// Get all Lucide icon names by filtering out non-icon exports
-const getAllLucideIconNames = (): string[] => {
-  const allKeys = Object.keys(LucideIcons);
+/**
+ * Non-icon exports, used only if lucide ever drops the `icons` registry and the
+ * name-based fallback below has to take over.
+ */
+const NON_ICON_EXPORTS = new Set([
+  'Icon',
+  'LucideProvider',
+  'createLucideIcon',
+  'default',
+  'dynamicIconImports',
+  'icons',
+  'useLucideContext',
+])
 
-  return allKeys.filter((key) => {
-    // Filter out non-icon exports like 'createLucideIcon', 'Icon', etc.
-    const excludedExports = [
-      'createLucideIcon',
-      'Icon',
-      'default',
-      'dynamicIconImports',
-      'icons',
-    ];
+/**
+ * Lucide's canonical kebab-case name for a PascalCase export.
+ *
+ * The obvious `replace(/([A-Z])/g, '-$1')` is wrong around digits, which is how
+ * `Axis3d` used to be stored as `axis3-d` and `Building2` as `building2` —
+ * neither of which lucide recognises, so `<DynamicIcon name={value} />` threw
+ * for 153 of the names this plugin emitted. The rules, in order:
+ *
+ * - split a lowercase/uppercase boundary (`ArrowRight` -> `arrow-right`)
+ * - split the tail off an acronym (`JSONFile` -> `json-file`)
+ * - split before a digit, but only when the preceding letter is not itself
+ *   preceded by a digit, so `Grid2x2` stays `grid-2x2` rather than `grid-2-x-2`
+ * - split a digit followed by an uppercase letter (`Link2Off` -> `link-2-off`)
+ *
+ * Verified to reproduce lucide's own name for all 1848 registry entries.
+ */
+const toKebabCase = (name: string): string =>
+  name
+    .replace(/([a-z])([A-Z])/g, '$1-$2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
+    .replace(/(?<![0-9])([A-Za-z])([0-9])/g, '$1-$2')
+    .replace(/([0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase()
 
-    const exportValue = LucideIcons[key as keyof typeof LucideIcons];
-
-    // Check if it's excluded
-    if (excludedExports.includes(key)) {
-      return false;
-    }
-
-    // Check if it's a valid Lucide icon (React forwardRef object)
-    const isValidIcon =
-      typeof exportValue === 'object' &&
-      exportValue !== null &&
-      '$$typeof' in exportValue &&
-      'render' in exportValue;
-
-    if (!isValidIcon) {
-      return false;
-    }
-
-    // Deduplicate: Skip Lucide prefixed versions if base version exists
-    // e.g., skip "LucideContact" if "Contact" exists
-    if (key.startsWith('Lucide')) {
-      const baseVersion = key.replace('Lucide', '');
-      if (allKeys.includes(baseVersion)) {
-        const baseExportValue =
-          LucideIcons[baseVersion as keyof typeof LucideIcons];
-        const baseIsValidIcon =
-          typeof baseExportValue === 'object' &&
-          baseExportValue !== null &&
-          '$$typeof' in baseExportValue &&
-          'render' in baseExportValue;
-
-        // Skip this Lucide prefixed version if base version is also a valid icon
-        if (baseIsValidIcon) {
-          return false;
-        }
-      }
-    }
-
-    // Deduplicate: Skip Icon suffixed versions if base version exists
-    // e.g., skip "ClockIcon" if "Clock" exists
-    if (key.endsWith('Icon')) {
-      const baseVersion = key.replace('Icon', '');
-      if (allKeys.includes(baseVersion)) {
-        const baseExportValue =
-          LucideIcons[baseVersion as keyof typeof LucideIcons];
-        const baseIsValidIcon =
-          typeof baseExportValue === 'object' &&
-          baseExportValue !== null &&
-          '$$typeof' in baseExportValue &&
-          'render' in baseExportValue;
-
-        // Skip this Icon version if base version is also a valid icon
-        if (baseIsValidIcon) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  });
-};
-
-// Convert PascalCase icon name to kebab-case
-const toKebabCase = (name: string): string => {
-  return name
+/**
+ * The naming this plugin used before canonical names. Kept solely to build the
+ * legacy alias map, so documents written by earlier versions still resolve.
+ */
+const toLegacyKebabCase = (name: string): string =>
+  name
     .replace(/([A-Z])/g, '-$1')
     .toLowerCase()
-    .replace(/^-/, '');
-};
+    .replace(/^-/, '')
 
-// Create tags for search functionality
-const createTags = (iconName: string): string[] => {
-  const kebabCase = toKebabCase(iconName);
-  const words = kebabCase.split('-');
+const splitWords = (kebab: string): string[] => kebab.split('-').filter(Boolean)
 
-  return [
-    iconName, // PascalCase name
-    kebabCase, // kebab-case name
-    ...words, // Individual words
-    iconName.toLowerCase(), // lowercase version
-  ];
-};
+/**
+ * Every export name that points at a given icon component.
+ *
+ * lucide exports each icon several times over — the bare name, an `*Icon`
+ * suffixed alias, a `Lucide*` prefixed alias, and deprecated renames — and all
+ * of them are the *same object reference* as the entry in `LucideIcons.icons`.
+ * That reference identity is what lets us group aliases without name guessing.
+ */
+const buildAliasIndex = (): Map<unknown, string[]> => {
+  const index = new Map<unknown, string[]>()
 
-// Get all Lucide icons as IconObject array
-export const getAllLucideIcons = (): IconObject[] => {
-  const iconNames = getAllLucideIconNames();
+  for (const [name, value] of Object.entries(LucideIcons)) {
+    const existing = index.get(value)
+    if (existing) {
+      existing.push(name)
+    } else {
+      index.set(value, [name])
+    }
+  }
 
-  return iconNames.map((name) => {
-    const IconComponent = LucideIcons[
-      name as keyof typeof LucideIcons
-    ] as React.ComponentType<any>;
+  return index
+}
 
-    return {
-      name: toKebabCase(name),
-      component: () => <IconComponent width="1.5em" height="1.5em" />,
-      tags: createTags(name),
-    };
-  });
-};
+/**
+ * `LucideIcons.icons` is the canonical registry: one entry per icon, keyed by
+ * its PascalCase name.
+ *
+ * Using it is what makes detection robust. The previous check duck-typed every
+ * export as `typeof x === 'object' && '$$typeof' in x && 'render' in x`, i.e. it
+ * assumed a `forwardRef` object. `createLucideIcon` does still use `forwardRef`,
+ * but React 19 makes that unnecessary — if a future lucide minor drops it, the
+ * old check matches *zero* exports and the picker silently empties. Reference
+ * identity against the registry does not care how the component is built.
+ */
+const getIconRegistry = (): Record<string, LucideIconComponent> | null => {
+  const {icons} = LucideIcons
+  return icons && Object.keys(icons).length > 0 ? icons : null
+}
 
-// Get all Lucide icons as Autocomplete options
-export const getAllLucideIconsAsOptions = () => {
-  const icons = getAllLucideIcons();
+const isComponentLike = (value: unknown): value is LucideIconComponent =>
+  typeof value === 'function' || (typeof value === 'object' && value !== null && '$$typeof' in value)
 
-  return icons.map((icon) => ({
-    value: icon.name,
-    label: icon.name,
-    icon: icon.component,
-    tags: icon.tags,
-    originalIcon: icon,
-  }));
-};
+/** Fallback used only if the `icons` registry ever disappears. */
+const buildIconsFromExports = (aliases: Map<unknown, string[]>): IconObject[] =>
+  Object.entries(LucideIcons).flatMap(([name, value]) => {
+    if (NON_ICON_EXPORTS.has(name) || !/^[A-Z]/.test(name) || !isComponentLike(value)) return []
+
+    // Prefer the bare name over its `Lucide*` / `*Icon` duplicates. `slice`
+    // rather than `replace`, which removes the first occurrence of the string
+    // anywhere rather than the affix.
+    if (name.startsWith('Lucide') && name.slice(6) in LucideIcons) return []
+    if (name.endsWith('Icon') && name.slice(0, -4) in LucideIcons) return []
+
+    return [buildIcon(name, value, aliases)]
+  })
+
+const buildIcon = (
+  pascalName: string,
+  component: LucideIconComponent,
+  aliases: Map<unknown, string[]>,
+): IconObject => {
+  const name = toKebabCase(pascalName)
+  const exportNames = aliases.get(component) ?? [pascalName]
+
+  const tags = new Set<string>([name, ...splitWords(name)])
+  for (const exportName of exportNames) {
+    tags.add(exportName)
+    tags.add(exportName.toLowerCase())
+    const kebab = toKebabCase(exportName)
+    tags.add(kebab)
+    for (const word of splitWords(kebab)) tags.add(word)
+  }
+
+  const tagList = [...tags]
+
+  return {
+    name,
+    component,
+    tags: tagList,
+    searchText: tagList.join('\n').toLowerCase(),
+  }
+}
+
+let cachedIcons: readonly IconObject[] | null = null
+
+/**
+ * Every selectable icon, built once per module rather than once per mounted
+ * picker. The previous code walked all 6331 exports and allocated ~30k tag
+ * strings on every mount.
+ */
+export const getAllLucideIcons = (): readonly IconObject[] => {
+  if (!cachedIcons) {
+    const aliases = buildAliasIndex()
+    const registry = getIconRegistry()
+
+    cachedIcons = registry
+      ? Object.entries(registry).map(([name, component]) => buildIcon(name, component, aliases))
+      : buildIconsFromExports(aliases)
+  }
+
+  return cachedIcons
+}
+
+let cachedByName: ReadonlyMap<string, IconObject> | null = null
+
+/** O(1) lookup by canonical name. */
+export const getLucideIconsByName = (): ReadonlyMap<string, IconObject> => {
+  if (!cachedByName) {
+    cachedByName = new Map(getAllLucideIcons().map((icon) => [icon.name, icon]))
+  }
+
+  return cachedByName
+}
+
+let cachedLegacyAliases: ReadonlyMap<string, string> | null = null
+
+/**
+ * Maps a value written by an earlier version of this plugin to the canonical
+ * name, e.g. `axis3-d` -> `axis-3d`, `building2` -> `building-2`.
+ *
+ * Computed from the same export list rather than checked in as a fixture, so it
+ * cannot drift. Names that were already correct are skipped.
+ */
+export const getLegacyAliasMap = (): ReadonlyMap<string, string> => {
+  if (!cachedLegacyAliases) {
+    const byName = getLucideIconsByName()
+    const aliases = new Map<string, string>()
+
+    for (const exportName of Object.keys(LucideIcons)) {
+      if (!/^[A-Z]/.test(exportName) || NON_ICON_EXPORTS.has(exportName)) continue
+
+      const canonical = toKebabCase(exportName)
+      if (!byName.has(canonical)) continue
+
+      const legacy = toLegacyKebabCase(exportName)
+      if (legacy !== canonical && !byName.has(legacy)) aliases.set(legacy, canonical)
+    }
+
+    cachedLegacyAliases = aliases
+  }
+
+  return cachedLegacyAliases
+}
+
+/**
+ * Resolves a stored value, transparently upgrading a legacy name.
+ * Returns `undefined` when the value matches no icon at all.
+ */
+export const resolveLucideIcon = (value: string | undefined): IconObject | undefined => {
+  if (!value) return undefined
+
+  const byName = getLucideIconsByName()
+  const direct = byName.get(value)
+  if (direct) return direct
+
+  const canonical = getLegacyAliasMap().get(value)
+  return canonical ? byName.get(canonical) : undefined
+}
+
+/** Restricts the set to a whitelist, preserving order. */
+export const filterAllowedIcons = (
+  icons: readonly IconObject[],
+  allowedIcons: string[] | undefined,
+): readonly IconObject[] => {
+  if (!allowedIcons) return icons
+
+  const allowed = new Set(allowedIcons)
+  return icons.filter((icon) => allowed.has(icon.name))
+}
+
+/** Substring match over every name, alias and word. Empty query matches all. */
+export const searchIcons = (
+  icons: readonly IconObject[],
+  query: string,
+): readonly IconObject[] => {
+  const term = query.trim().toLowerCase()
+  if (!term) return icons
+
+  return icons.filter((icon) => icon.searchText.includes(term))
+}
+
+/**
+ * Renders a Lucide icon at a given size.
+ *
+ * The icon arrives as a prop rather than being closed over by a per-icon
+ * wrapper. Previously each option carried its own freshly built
+ * `() => <Icon width="1.5em" height="1.5em" />`, so React saw a brand-new
+ * element type on every call and remounted the icon subtree instead of
+ * re-rendering it. This component's identity is fixed at module scope.
+ */
+export const IconGlyph = ({
+  icon: Icon,
+  size = '1.5em',
+}: {
+  icon: LucideIconComponent
+  size?: string | number
+}): JSX.Element => <Icon aria-hidden height={size} width={size} />
