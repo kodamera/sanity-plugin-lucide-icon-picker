@@ -27,7 +27,6 @@
   "exports": {
     ".": {
       "source": "./src/index.ts",
-      "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
@@ -52,7 +51,7 @@
   },
   "devDependencies": {
     "@sanity/browserslist-config": "^1.0.5",
-    "@sanity/pkg-utils": "^7.8.10",
+    "@sanity/pkg-utils": "^13.0.0",
     "@sanity/plugin-kit": "^4.0.19",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/react": "^19.3.0",
@@ -83,6 +82,10 @@
   },
   "packageManager": "pnpm@9.15.1+sha512.1acb565e6193efbebda772702950469150cf12bcc764262e7587e71d19dc98a423dff9536e57ea44c49bdf790ff694e83c27be5faa23d67e0c033b583be4bfcf",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "exports": {
+      ".": "./dist/index.js",
+      "./package.json": "./package.json"
+    }
   }
 }
