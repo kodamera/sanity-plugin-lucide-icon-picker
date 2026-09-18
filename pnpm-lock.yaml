@@ -27,9 +27,6 @@ importers:
       '@sanity/browserslist-config':
         specifier: ^1.0.5
         version: 1.0.5
-      '@sanity/incompatible-plugin':
-        specifier: ^1.0.5
-        version: 1.0.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@sanity/pkg-utils':
         specifier: ^7.8.10
         version: 7.9.12(@types/babel__core@7.20.5)(@types/node@24.1.0)(typescript@5.8.3)
@@ -2602,12 +2599,6 @@ packages:
     engines: {node: '>=22.12.0'}
     peerDependencies:
       '@sanity/client': ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
-
-  '@sanity/incompatible-plugin@1.0.5':
-    resolution: {integrity: sha512-9JGAacbElUPy9Chghd+sllIiM3jAcraZdD65bWYWUVKkghOsf1L/+jFLz1rcAuvrA9o2s7Y+T75BNcXuLwRcvw==}
-    peerDependencies:
-      react: ^16.9 || ^17 || ^18 || ^19
-      react-dom: ^16.9 || ^17 || ^18 || ^19
 
   '@sanity/json-match@1.0.5':
     resolution: {integrity: sha512-skhIX8gT/hLritEBkjfc7+TBlJNu/NLisyA8noKceCk28OatFK0wX7dIuFawkt3pfhTYVomVPykAYFcIm2OqJg==}
@@ -9685,11 +9676,6 @@ snapshots:
       - '@types/react'
       - vitest
 
-  '@sanity/incompatible-plugin@1.0.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
-    dependencies:
-      react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
-
   '@sanity/json-match@1.0.5': {}
 
   '@sanity/logos@2.2.5(react@19.1.1)':
@@ -10296,8 +10282,8 @@ snapshots:
 
   '@types/babel__core@7.20.5':
     dependencies:
-      '@babel/parser': 7.28.0
-      '@babel/types': 7.28.2
+      '@babel/parser': 7.29.8
+      '@babel/types': 7.29.8
       '@types/babel__generator': 7.27.0
       '@types/babel__template': 7.4.4
       '@types/babel__traverse': 7.20.7
@@ -10305,18 +10291,18 @@ snapshots:
 
   '@types/babel__generator@7.27.0':
     dependencies:
-      '@babel/types': 7.28.2
+      '@babel/types': 7.29.8
     optional: true
 
   '@types/babel__template@7.4.4':
     dependencies:
-      '@babel/parser': 7.28.0
-      '@babel/types': 7.28.2
+      '@babel/parser': 7.29.8
+      '@babel/types': 7.29.8
     optional: true
 
   '@types/babel__traverse@7.20.7':
     dependencies:
-      '@babel/types': 7.28.2
+      '@babel/types': 7.29.8
     optional: true
 
   '@types/estree@1.0.8': {}
@@ -13157,7 +13143,7 @@ snapshots:
 
   postcss@8.4.49:
     dependencies:
-      nanoid: 3.3.11
+      nanoid: 3.3.19
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
