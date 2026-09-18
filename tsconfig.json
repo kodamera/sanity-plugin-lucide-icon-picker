@@ -1,4 +1,10 @@
 {
   "extends": "./tsconfig.settings",
-  "include": ["./src", "./package.config.ts"]
+  "include": ["./src", "./test", "./package.config.ts", "./vitest.config.ts"],
+  "compilerOptions": {
+    // The build emits via pkg-utils, which reads `jsx` from tsconfig.dist.json
+    // ("preserve" — required by plugin-kit's verify-package tsconfig check).
+    // Editor, typecheck and Vitest want the real React 19 automatic runtime.
+    "jsx": "react-jsx"
+  }
 }
