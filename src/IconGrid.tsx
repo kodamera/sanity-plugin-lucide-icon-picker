@@ -8,8 +8,7 @@ import type {IconObject} from './types'
 /**
  * Tiles per row. Fixed rather than measured: the tiles are `1fr` in a CSS grid,
  * so they shrink to fit a narrow field instead of overflowing, and the
- * virtualizer only ever needs a row count. Measuring would also mean depending
- * on ResizeObserver, which jsdom does not implement.
+ * virtualizer only ever needs a row count.
  */
 export const GRID_COLUMNS = 8
 

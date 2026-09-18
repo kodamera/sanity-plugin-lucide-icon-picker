@@ -77,11 +77,17 @@ const LucideIconPicker = ({
   const safeActiveIndex = results.length === 0 ? -1 : Math.min(activeIndex, results.length - 1)
   const activeIcon = safeActiveIndex >= 0 ? results[safeActiveIndex] : undefined
 
-  const close = useCallback(() => {
-    setIsOpen(false)
-    setQuery('')
-    setActiveIndex(0)
-  }, [])
+  const close = useCallback(
+    (restoreFocus = false) => {
+      setIsOpen(false)
+      setQuery('')
+      setActiveIndex(0)
+      // Only when dismissed from the keyboard. Stealing focus back after a
+      // click outside would fight whatever the user just clicked on.
+      if (restoreFocus) fieldRef.current?.focus()
+    },
+    [fieldRef],
+  )
 
   const open = useCallback(() => {
     if (readOnly) return
@@ -95,7 +101,10 @@ const LucideIconPicker = ({
   // every click inside the picker look like an outside click, which closed the
   // popover on mousedown and unmounted the tile before its click could land.
   // The grid opened but nothing could ever be selected.
-  useClickOutsideEvent(isOpen && close, () => [rootRef.current, contentRef.current])
+  useClickOutsideEvent(isOpen && (() => close()), () => [
+    rootRef.current,
+    contentRef.current,
+  ])
 
   // Move focus into the search field once the popover has mounted.
   useEffect(() => {
@@ -117,6 +126,14 @@ const LucideIconPicker = ({
 
   const handleSearchKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
+      // Before the empty guard below: Escape has to work even when the search
+      // matches nothing, which is exactly when a user wants out.
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        return close(true)
+      }
+
       const lastIndex = results.length - 1
       if (lastIndex < 0) return
 
@@ -147,7 +164,7 @@ const LucideIconPicker = ({
           return undefined
       }
     },
-    [activeIcon, safeActiveIndex, commit, results.length],
+    [activeIcon, close, safeActiveIndex, commit, results.length],
   )
 
   const picker = (
@@ -187,7 +204,7 @@ const LucideIconPicker = ({
         selectedName={selectedIcon?.name}
       />
 
-      <Flex align="center" justify="space-between" paddingLeft={2} paddingTop={2} paddingY={1}>
+      <Flex align="center" justify="space-between" paddingTop={2} paddingX={2}>
         <Text muted size={0}>
           {results.length === allIcons.length
             ? `${allIcons.length} icons`
@@ -232,6 +249,7 @@ const LucideIconPicker = ({
             <Card border padding={1} radius={2} tone="caution">
               <Flex align="center" gap={1} justify="space-between">
                 <Card
+                  aria-describedby={ariaDescribedBy}
                   as="button"
                   disabled={readOnly}
                   flex={1}
@@ -242,6 +260,7 @@ const LucideIconPicker = ({
                   padding={2}
                   radius={2}
                   ref={fieldRef}
+                  style={fieldStyle}
                   title="Replace icon"
                   tone="inherit"
                   type="button"

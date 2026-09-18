@@ -155,3 +155,47 @@ describe('allowedIcons', () => {
     ])
   })
 })
+
+describe('dismissing', () => {
+  // @sanity/ui's Popover keeps its content mounted once it has been opened, so
+  // "no longer in the document" is not the signal. Focus returning to the field
+  // is: it only happens on a keyboard dismiss.
+  it('closes on Escape and returns focus to the field', async () => {
+    const user = userEvent.setup()
+    render(<LucideIconPicker {...inputProps()} />)
+
+    const trigger = screen.getByRole('button', {name: /select an icon/i})
+    await user.click(trigger)
+    expect(screen.getByRole('combobox', inPopover)).toHaveFocus()
+
+    await user.keyboard('{Escape}')
+
+    expect(trigger).toHaveFocus()
+  })
+
+  it('closes on Escape even when the search matches nothing', async () => {
+    const user = userEvent.setup()
+    render(<LucideIconPicker {...inputProps()} />)
+
+    const trigger = screen.getByRole('button', {name: /select an icon/i})
+    const search = await openPicker(user)
+    await user.type(search, 'zzzzzznotanicon')
+    expect(screen.getByText(/no icons match/i)).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+
+    expect(trigger).toHaveFocus()
+  })
+
+  it('does not commit a value when dismissed', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<LucideIconPicker {...inputProps({onChange})} />)
+
+    const search = await openPicker(user)
+    await user.type(search, 'arrow')
+    await user.keyboard('{Escape}')
+
+    expect(onChange).not.toHaveBeenCalled()
+  })
+})
