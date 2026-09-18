@@ -1,6 +1,6 @@
 <div align="center">
   <h1>Sanity Lucide Icon Picker</h1>
-  <h3>A searchable, virtualized icon picker for Sanity Studio with 1,848 Lucide icons.</h3>
+  <h3>A searchable, virtualized icon picker for Sanity Studio with 1,866 Lucide icons.</h3>
   <p><em>Originally created by <a href="https://contentwrap.io" target="_blank">ContentWrap</a> — this fork is maintained by <a href="https://kodamera.se" target="_blank">Kodamera</a></em></p>
 
   <img src="https://img.shields.io/npm/v/@kodamera/sanity-plugin-lucide-icon-picker" alt="npm version" />
@@ -48,7 +48,8 @@ exist in v4, so no single import statement resolves on both.
 
 ## Features
 
-- **1,848 icons** — the complete Lucide set, browsable in a virtualized grid
+- **1,866 icons** — the complete Lucide set, plus the 18 brand icons Lucide
+  removed in 1.x, browsable in a virtualized grid
 - **Real search** — matches the canonical name, the PascalCase name, deprecated
   aliases, and individual words, with no result cap
 - **Keyboard driven** — arrow keys, `Home`/`End` and `Enter` move and select
@@ -204,7 +205,7 @@ reach the browser.
 
 ## Performance
 
-- **Virtualized grid** — only the visible rows are mounted, so the full 1,848
+- **Virtualized grid** — only the visible rows are mounted, so the full 1,866
   icons scroll smoothly and there is no result cap
 - **Single-pass search** — each icon carries a pre-lowercased haystack of its
   names and aliases, so filtering is one substring test per icon and needs no

@@ -29,17 +29,29 @@ Forked from `contentwrap/sanity-plugin-lucide-icon-picker` and published as
   `Name in Lucide DynamicIcon not found`. Values are now taken from Lucide's
   canonical registry and verified against every key in `dynamicIconImports`.
 
-  Aliases also collapse into one entry per icon — 1,848 selectable icons instead
-  of 2,108 rows with duplicates — and deprecated names become search terms, so
+  Aliases also collapse into one entry per icon — 1,848 selectable Lucide icons
+  (1,866 including the restored brand icons) instead of 2,108 rows with
+  duplicates — and deprecated names become search terms, so
   typing an old name still finds the icon.
-- `lucide-react` 0.532 → 1.47. Lucide removed its brand icons in 1.x, so
-  `facebook`, `twitter`, `instagram` and friends no longer exist. An
-  `allowedIcons` list naming them will come back empty.
+- `lucide-react` 0.532 → 1.47.
 
 ### Added
 
+- **Drop-in compatibility with the upstream plugin.** All 1,837 distinct values
+  the previous version could store resolve, asserted by a test over a fixture
+  generated from lucide-react 0.532.0. The plugin never rewrites a value on
+  read, so opening a document cannot alter data.
+- The 18 brand icons Lucide deleted in 1.x — `chrome`, `codepen`,
+  `codesandbox`, `dribbble`, `facebook`, `figma`, `framer`, `github`, `gitlab`,
+  `instagram`, `linkedin`, `pocket`, `rail-symbol`, `slack`, `trello`,
+  `twitch`, `twitter`, `youtube` — are bundled with the plugin, rebuilt from
+  path data copied from lucide-react 0.532.0 (ISC licensed). They stay pickable
+  and searchable. They are frozen, and because they no longer exist upstream,
+  `DynamicIcon` cannot load them; render those explicitly on the frontend.
+- `scripts/audit-icon-values.mjs`, a read-only CLI that reports every distinct
+  icon value in a dataset as `ok`, `renamed`, `brand` or `unknown`.
 - The picker is now a searchable, virtualized grid of icon tiles rather than a
-  dropdown list. All 1,848 icons are browsable; the old list was capped at 200
+  dropdown list. All 1,866 icons are browsable; the old list was capped at 200
   unsearched and 100 searched.
 - Keyboard navigation across the grid — arrow keys, `Home`/`End` and `Enter` —
   driven from the search field, with `aria-activedescendant` following the
